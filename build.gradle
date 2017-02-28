@@ -4,14 +4,17 @@ apply plugin: 'base'
 version = '0.1'
 
 ext {
-    gradleVersion = '1.7'
+    gradleVersion = '3.4'
     companyName = 'company'
 }
 
 task downloadGradle(type: DownloadGradle) {
     description = 'Downloads the Gradle distribution with a given version.'
     gradleVersion = project.gradleVersion
-    destinationDir = file('gradle-downloads')
+    destinationDir = file("$buildDir/gradle-downloads")
+	if( !destinationDir.exists() ) {
+			destinationDir.mkdirs()
+	}
 }
 
 task customGradleDistribution(type: Zip, dependsOn: downloadGradle) {

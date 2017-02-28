@@ -15,7 +15,11 @@ class DownloadGradle extends DefaultTask {
 
     @TaskAction 
     void doDownloadGradle() {
-        destinationFile.withOutputStream { it << new URL(downloadUrl).newInputStream() }
+		
+		//download only if exists
+		if( !getDestinationFile().exists() ) {
+	        destinationFile.bytes = new URL(downloadUrl).bytes
+		}
     }
 
     String getDownloadUrl() {
