@@ -1,4 +1,6 @@
-import org.gradle.distribution.DownloadGradle   
+plugins {
+    id "de.undercouch.download" version "3.2.0"
+}
 
 apply plugin: 'base'
 version = '0.1'
@@ -6,23 +8,26 @@ version = '0.1'
 ext {
     gradleVersion = '3.4'
     companyName = 'company'
+    gradleDownloadBase = 'http://services.gradle.org/distributions/'
+    gradleClassifier = 'bin'
 }
 
-task downloadGradle(type: DownloadGradle) {
+import de.undercouch.gradle.tasks.download.Download
+
+task downloadGradle(type: Download) {
     description = 'Downloads the Gradle distribution with a given version.'
-    gradleVersion = project.gradleVersion
-    destinationDir = file("$buildDir/gradle-downloads")
-	if( !destinationDir.exists() ) {
-			destinationDir.mkdirs()
-	}
+
+    src gradleDownloadBase + "gradle-"+gradleVersion+"-"+ gradleClassifier + ".zip"
+    dest "$buildDir/gradle-download/gradle-"+gradleVersion+"-" + gradleClassifier + ".zip"
+    onlyIfNewer true
 }
 
 task customGradleDistribution(type: Zip, dependsOn: downloadGradle) {
     description = 'Builds custom Gradle distribution and bundles initialization scripts.'
-    archiveName "$companyName-gradle-$downloadGradle.gradleVersion-$version-bin.zip"
+    archiveName "$companyName-gradle-$project.gradleVersion-$version-${project.gradleClassifier}.zip"
 
-    from zipTree(downloadGradle.destinationFile)
-    into "$downloadGradle.distributionNameBase/init.d", {
+    from zipTree(downloadGradle.dest)
+    into "gradle-$project.gradleVersion/init.d", {
         from 'src/init.d'
     }
 }
