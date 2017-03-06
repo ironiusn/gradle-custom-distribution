@@ -38,4 +38,51 @@ task customGradleDistribution(type: Zip, dependsOn: downloadGradle) {
     }
 }
 
-defaultTasks 'customGradleDistribution'
+//task to write gradle.wrapper.properties
+//SHA-256 of created distribution file will be computed and written into the file
+task writeGradleWrapperProperties(type: WriteProperties, dependsOn: customGradleDistribution) {
+    def wrapperproperties = "${project.buildDir}\\gradle-wrapper.properties"
+	
+    inputs.file customGradleDistribution.archivePath
+    outputs.file file(wrapperproperties)
+    outputs.upToDateWhen {
+        false
+    }
+    setOutputFile(wrapperproperties)
+	
+    comment('use local version of gradle\n'+
+    '#always when gradle distribution uploaded to artifactory changes SHA-256 hash needs to be recomputed and stored here\n'+
+    '#shasum -a 256 gradle-distribution.zip\n'+
+    '#for more information see https://docs.gradle.org/current/userguide/gradle_wrapper.html')
+
+    property('distributionBase','GRADLE_USER_HOME')		
+    property('distributionPath',"wrapper/dists")
+    property('zipStoreBase','GRADLE_USER_HOME')
+    property('zipStorePath',"wrapper/dists")
+    property('distributionUrl',"http://<your repository location>/<your repository path>/$version/${companyName}-gradle-${version}-bin.zip")
+    property('distributionSha256Sum',calcSHA256(customGradleDistribution.archivePath))
+}
+
+import java.security.MessageDigest
+import org.gradle.api.GradleException
+
+//must be the same as shasum -a 256 <distribution_file>
+def calcSHA256(file) {
+	
+	if(file.exists()) {
+		logger.info "computing SHA-256 of " + file
+		MessageDigest md = MessageDigest.getInstance("SHA-256")
+		file.eachByte 4096, {bytes, size ->
+     	   md.update(bytes, 0, size);
+    	}
+    	def sha256 = md.digest().collect {String.format "%02x",it}.join()
+    	logger.debug "Computed digest " +sha256 
+    	return sha256
+	} else {
+		logger.error "file " + file + " does not exist"
+		throw new GradleException("Computation of SHA-256 not possible. File " + file + " does not exist")
+	}
+}
+
+
+defaultTasks 'writeGradleWrapperProperties'
