@@ -3,10 +3,10 @@ plugins {
 }
 
 apply plugin: 'base'
-version = '0.1'
+version = '0.2'
 
 ext {
-    gradleVersion = '3.4'
+    gradleVersion = '3.4.1'
     companyName = 'company'
     gradleDownloadBase = 'http://services.gradle.org/distributions/'
     gradleClassifier = 'bin'
