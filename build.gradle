@@ -30,6 +30,12 @@ task customGradleDistribution(type: Zip, dependsOn: downloadGradle) {
     into "gradle-$project.gradleVersion/init.d", {
         from 'src/init.d'
     }
+
+    inputs.file downloadGradle.dest
+
+    doLast {
+        logger.info "Custom distribution archive " + archivePath + " created."
+    }
 }
 
 defaultTasks 'customGradleDistribution'
