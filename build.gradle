@@ -4,28 +4,30 @@ plugins {
 
 apply plugin: 'base'
 apply plugin: 'maven-publish'
-version = '0.3.1'
+version = '0.4.0'
 group = 'test'
 
 ext {
-    gradleVersion = '3.4.1'
-    companyName = 'company'
-    gradleDownloadBase = 'http://services.gradle.org/distributions/'
-    gradleClassifier = 'bin'
+    gradleVersion = gradle_version
+    companyName = company_name
+    gradleDownloadBase = gradle_download_base
+    gradleClassifier = gradle_classifier
 }
 
 import de.undercouch.gradle.tasks.download.Download
 
 task downloadGradle(type: Download) {
+	group = 'Custom distribution'
     description = 'Downloads the Gradle distribution with a given version.'
 
-    src gradleDownloadBase + "gradle-"+gradleVersion+"-"+ gradleClassifier + ".zip"
+    src gradleDownloadBase + 'gradle-'+gradleVersion+'-'+ gradleClassifier + '.zip'
 	dest "$buildDir/gradle-download/gradle-"+gradleVersion+"-" + gradleClassifier + ".zip"
     onlyIfNewer true
 }
 
 task customGradleDistribution(type: Zip, dependsOn: downloadGradle) {
-    description = 'Builds custom Gradle distribution and bundles initialization scripts.'
+    group = 'Custom distribution'
+	description = 'Builds custom Gradle distribution and bundles initialization scripts.'
     archiveName "$companyName-gradle-$project.gradleVersion-$version-${project.gradleClassifier}.zip"
 
     from zipTree(downloadGradle.dest)
@@ -42,8 +44,10 @@ task customGradleDistribution(type: Zip, dependsOn: downloadGradle) {
 
 //task to write gradle.wrapper.properties
 //SHA-256 of created distribution file will be computed and written into the file
-task writeGradleWrapperProperties(type: WriteProperties, dependsOn: customGradleDistribution) {
-    def wrapperproperties = "${project.buildDir}\\gradle-wrapper.properties"
+task createWrapperPropertiesForDistribution(type: WriteProperties, dependsOn: customGradleDistribution) {
+	group = 'Custom distribution'
+	description = 'Creates gradle-wrapper.properties for created distribution'
+    File wrapperproperties = new File("${project.buildDir}\\gradle-wrapper.properties")
 	
     inputs.file customGradleDistribution.archivePath
     outputs.file file(wrapperproperties)
@@ -51,18 +55,24 @@ task writeGradleWrapperProperties(type: WriteProperties, dependsOn: customGradle
         false
     }
     setOutputFile(wrapperproperties)
-	
-    comment('use local version of gradle\n'+
-    '#always when gradle distribution uploaded to artifactory changes SHA-256 hash needs to be recomputed and stored here\n'+
-    '#shasum -a 256 gradle-distribution.zip\n'+
-    '#for more information see https://docs.gradle.org/current/userguide/gradle_wrapper.html')
+	doLast{
+		
+		setComment('use local version of gradle\n'+
+		'#always when gradle distribution uploaded to artifactory changes SHA-256 hash needs to be recomputed and stored here\n'+
+		'#shasum -a 256 gradle-distribution.zip\n'+
+		'#for more information see https://docs.gradle.org/current/userguide/gradle_wrapper.html')
 
-    property('distributionBase','GRADLE_USER_HOME')		
-    property('distributionPath',"wrapper/dists")
-    property('zipStoreBase','GRADLE_USER_HOME')
-    property('zipStorePath',"wrapper/dists")
-    property('distributionUrl',"http://<your repository location>/<your repository path>/$version/${companyName}-gradle-${version}-bin.zip")
-    property('distributionSha256Sum',calcSHA256(customGradleDistribution.archivePath))
+		property('distributionBase','GRADLE_USER_HOME')		
+		property('distributionPath',"wrapper/dists")
+		property('zipStoreBase','GRADLE_USER_HOME')
+		property('zipStorePath',"wrapper/dists")
+		property('distributionUrl',"http://<your repository location>/<your repository path>/$version/${companyName}-gradle-${version}-bin.zip")
+		property('distributionSha256Sum',calcSHA256(customGradleDistribution.archivePath))
+		
+		writeProperties()
+		
+		logger.info "gradle-wrapper.properties created in " + wrapperproperties
+	}
 }
 
 import java.security.MessageDigest
@@ -113,4 +123,4 @@ publishing {
     }
 }
 
-defaultTasks 'writeGradleWrapperProperties'
+defaultTasks 'createWrapperPropertiesForDistribution'
