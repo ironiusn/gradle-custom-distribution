@@ -4,12 +4,12 @@ plugins {
 
 apply plugin: 'base'
 apply plugin: 'maven-publish'
-version = '0.4.0'
-group = 'test'
+
+version = custom_gradle_version
+group = target_maven_repo_group
 
 ext {
     gradleVersion = gradle_version
-    companyName = company_name
     gradleDownloadBase = gradle_download_base
     gradleClassifier = gradle_classifier
 }
@@ -18,7 +18,7 @@ import de.undercouch.gradle.tasks.download.Download
 
 task downloadGradle(type: Download) {
 	group = 'Custom distribution'
-    description = 'Downloads the Gradle distribution with a given version.'
+    description = 'Downloads the Gradle distribution. Version needs to be specified in gradle.properties.'
 
     src gradleDownloadBase + 'gradle-'+gradleVersion+'-'+ gradleClassifier + '.zip'
 	dest "$buildDir/gradle-download/gradle-"+gradleVersion+"-" + gradleClassifier + ".zip"
@@ -28,7 +28,7 @@ task downloadGradle(type: Download) {
 task customGradleDistribution(type: Zip, dependsOn: downloadGradle) {
     group = 'Custom distribution'
 	description = 'Builds custom Gradle distribution and bundles initialization scripts.'
-    archiveName "$companyName-gradle-$project.gradleVersion-$version-${project.gradleClassifier}.zip"
+    archiveName "${target_maven_repo_artifactid_gradle_distribution}-$project.gradleVersion-$version-${project.gradleClassifier}.zip"
 
     from zipTree(downloadGradle.dest)
     into "gradle-$project.gradleVersion/init.d", {
@@ -42,11 +42,11 @@ task customGradleDistribution(type: Zip, dependsOn: downloadGradle) {
     }
 }
 
-//task to write gradle.wrapper.properties
+//task to write gradle-wrapper.properties
 //SHA-256 of created distribution file will be computed and written into the file
-task createWrapperPropertiesForDistribution(type: WriteProperties, dependsOn: customGradleDistribution) {
+task wrapperPropertiesForDistribution(type: WriteProperties, dependsOn: customGradleDistribution) {
 	group = 'Custom distribution'
-	description = 'Creates gradle-wrapper.properties for created distribution'
+	description = 'Creates gradle-wrapper.properties for created distribution.'
     File wrapperproperties = new File("${project.buildDir}\\gradle-wrapper.properties")
 	
     inputs.file customGradleDistribution.archivePath
@@ -66,7 +66,7 @@ task createWrapperPropertiesForDistribution(type: WriteProperties, dependsOn: cu
 		property('distributionPath',"wrapper/dists")
 		property('zipStoreBase','GRADLE_USER_HOME')
 		property('zipStorePath',"wrapper/dists")
-		property('distributionUrl',"http://<your repository location>/<your repository path>/$version/${companyName}-gradle-${version}-bin.zip")
+		property('distributionUrl',"${target_maven_repo}/${target_maven_repo_group}/${target_maven_repo_artifactid_gradle_distribution}/$version/${target_maven_repo_artifactid_gradle_distribution}-${version}-bin.zip")
 		property('distributionSha256Sum',calcSHA256(customGradleDistribution.archivePath))
 		
 		writeProperties()
@@ -102,7 +102,7 @@ publishing {
         gradle(MavenPublication) {
         	//publish zip created with companyGradleZip task
         	groupId project.group
-        	artifactId 'custom-gradle'
+        	artifactId target_maven_repo_artifactid_gradle_distribution
         	//specifiy with bin classifier
 			artifact source: file("$artifactName"), classifier:"bin", extension:"zip"
         }
@@ -118,9 +118,13 @@ publishing {
     repositories {
         maven {
             // change to point to your repo, e.g. http://my.org/repo
-            url "$buildDir/repo"
+            url target_maven_repo
+			credentials {
+				username = target_maven_repo_username
+				password = target_maven_repo_password
+			}
         }
     }
 }
 
-defaultTasks 'createWrapperPropertiesForDistribution'
+defaultTasks 'wrapperPropertiesForDistribution'
