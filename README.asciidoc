@@ -12,9 +12,18 @@ Usage
 =====
 Configure gradle.properties to match your environment.
 
-gradle wrapperPropertiesForDistribution
+> gradle wrapperPropertiesForDistribution
 
-gradle publish
+	Downloads the official distribution if not yet downloaded. Created custom distribution. Creates wrapper properties with SHA-256 checksum of custom distribution.
+
+> gradle publish
+	
+	Publishes just created distribution to the maven repository.
+
+> gradle prepareTest
+
+	Copies the created gradle-wrapper.properties to the wrapper directory. 
+	If previously initiated with gradle wrapper created distribution can be checked with simle gradlew.
 
 License
 =======

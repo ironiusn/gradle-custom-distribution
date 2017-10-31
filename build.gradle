@@ -75,6 +75,22 @@ task wrapperPropertiesForDistribution(type: WriteProperties, dependsOn: customGr
 	}
 }
 
+task prepareTest(type: Copy, dependsOn:wrapperPropertiesForDistribution)  {
+	group = 'Custom distribution'
+	description = 'Copies gradle-wrapper.properties for created distribution into wrapper directory.'
+	
+	inputs.file "${project.buildDir}\\gradle-wrapper.properties"
+	
+	from "${project.buildDir}\\gradle-wrapper.properties"
+	into "gradle/wrapper"
+	File wrapperproperties = new File("gradle/wrapper/gradle-wrapper.jar")
+	doLast {
+		if(!wrapperproperties.exists()) {
+			println "Wrapper needs to be initiated with gradle wrapper"
+		}
+	}
+}
+
 import java.security.MessageDigest
 import org.gradle.api.GradleException
 
